@@ -3,16 +3,16 @@ on:
   workflow_dispatch:
     inputs:
       URL:
-        description: "待移植包下载地址"
+        description: "Download Address"
         required: true
       CUSTOM_VERSION:
-        description: "待打包版本号"
+        description: "Version Number"
       VENDOR_URL:
-        description: "底包下载地址"
+        description: "Download Address of Base Package"
         required: true
-        default: 'https://bigota.d.miui.com/V14.0.23.0.TMRCNXM/miui_MARBLE_V14.0.23.0.TMRCNXM_749010fa11_13.0.zip'
+        default: 'https://zenlayer.dl.sourceforge.net/project/xiaomi-eu-multilang-miui-roms/xiaomi.eu/HyperOS-STABLE-RELEASES/HyperOS1.0/xiaomi.eu_MARBLE_OS1.0.18.0.UMRCNXM_14.zip?viasf=1'
       IMAGE_TYPE:
-          description: "IMAGE 格式"
+          description: "IMAGE Format"
           required: true
           default: 'erofs'
           type: choice
@@ -20,25 +20,25 @@ on:
           - erofs
           - ext4
       EXT_RW:
-          description: 'EXT4 可读写'
+          description: 'EXT4 R/W'
           required: true
           type: boolean
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - name: 最大化构建环境
+      - name: Maximizing the build environment
         uses: easimon/maximize-build-space@master
         with:
           swap-size-mb: 8192
           remove-dotnet: 'true'
           remove-android: 'true'
           remove-haskell: 'true'
-      - name: 检出仓库文件
+      - name: Check out repository files
         uses: actions/checkout@main
-      - name: 准备所需环境
+      - name: Prepare the required environment
         run: |
-          sudo timedatectl set-timezone Asia/Shanghai
+          sudo timedatectl set-timezone Asia/Bangkok
           if [ -n "${{ github.event.inputs.CUSTOM_VERSION }}" ]; then
               echo "date=${{ github.event.inputs.CUSTOM_VERSION }}" >> $GITHUB_ENV
           else
@@ -47,18 +47,18 @@ jobs:
           echo "vendor_date=$(echo ${{ github.event.inputs.VENDOR_URL }} | cut -d"/" -f4)" >> $GITHUB_ENV
           echo "device=marble" >> $GITHUB_ENV
           sudo apt-get install python3 aria2 p7zip-full zstd
-      - name: 构建 ROM
+      - name: Building ROM
         run: |
-          sudo bash "$GITHUB_WORKSPACE"/make.sh ${{ github.event.inputs.URL }} ${{ env.date }} $GITHUB_ENV $GITHUB_WORKSPACE ${{ github.event.inputs.VENDOR_URL }} ${{ github.event.inputs.IMAGE_TYPE }} ${{ github.event.inputs.EXT_RW }}
-      - name: 处理 ROM
+          sudo bash "$GITHUB_WORKSPACE"/build.sh ${{ github.event.inputs.URL }} ${{ env.date }} $GITHUB_ENV $GITHUB_WORKSPACE ${{ github.event.inputs.VENDOR_URL }} ${{ github.event.inputs.IMAGE_TYPE }} ${{ github.event.inputs.EXT_RW }}
+      - name: Unpacking ROM
         run: |
           mkdir -p "$GITHUB_WORKSPACE"/GithubRelease
           cd "$GITHUB_WORKSPACE"/GithubRelease
           sudo split -b 1536M -d "$GITHUB_WORKSPACE"/zip/"${{ env.NEW_PACKAGE_NAME }}" "${{ env.NEW_PACKAGE_NAME }}"
           cd "$GITHUB_WORKSPACE"
           touch file.log
-          echo -e "移植版本: ${{ env.date }}\n底包版本: ${{ env.vendor_date }}" > file.log
-      - name: 上传到 Github Release
+          echo -e "Ported Ver: ${{ env.date }}\nBase Pkg Ver: ${{ env.vendor_date }}" > file.log
+      - name: Upload Github Release
         uses: ncipollo/release-action@main
         with:
           artifacts: ${{ github.workspace }}/GithubRelease/*
